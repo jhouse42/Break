@@ -20,18 +20,37 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
     
     @IBOutlet weak var scoreLabel: UILabel!
     
+    @IBOutlet weak var titleLabel: UILabel!
+    
+    
+    @IBOutlet weak var playButton: UIButton!
+    
+    
+    
+    
+    
     var score: Int = 0 {
         
-    
+//OBSERVER
     
     didSet {
         
+        if score > GameData.mainData().topScore {
+        
+        GameData.mainData().topScore = score
+        
+        }
+        
+       GameData.mainData().currentGame?["totalScore"] = score
+            
+            
+            
         scoreLabel.text = "\(score)"
-    
-    
-    }
+        
     
     }
+    
+}
     
     var animator: UIDynamicAnimator?
     
@@ -99,13 +118,70 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
         paddleBehavior.density = 1000000
         
         
-        createPaddle()
-        createBall()
-        createBricks()
+       
         
         
         
     }
+    
+
+   @IBAction func playGame(){
+    
+    
+    GameData.mainData().startGame()
+        
+    titleLabel.hidden = true
+    playButton.hidden = true
+    
+    score = 0
+    livesView.livesLeft = 3
+    
+    
+    
+    
+    
+    
+    
+    
+        createPaddle()
+        createBall()
+        createBricks()
+        
+
+}
+    
+    func endGame(gameOver: Bool) {
+        
+        GameData.mainData().currentLevel = gameOver ? 0 : GameData.mainData().currentLevel+1;
+        
+        println(GameData.mainData().gamesPlayed)
+        println(GameData.mainData().topScore)
+        
+        titleLabel.hidden = false
+        playButton.hidden = false
+        
+ //remove paddle, ball and bricks
+        paddle.removeFromSuperview()
+        collisionBehavior.removeItem(paddle)
+        paddleBehavior.removeItem(paddle)
+        
+        
+        for ball in ballBehavior.items as [UIView] {
+            
+            ball.removeFromSuperview()
+            collisionBehavior.removeItem(ball)
+            ballBehavior.removeItem(ball)
+            
+        }
+        
+        for brick in brickBehavior.items as [UIView] {
+            brick.removeFromSuperview()
+            collisionBehavior.removeItem(brick)
+            brickBehavior.removeItem(brick)
+        }
+
+}
+    
     
     
     func collisionBehavior(behavior: UICollisionBehavior, beganContactForItem item1: UIDynamicItem, withItem item2: UIDynamicItem, atPoint p: CGPoint) {
@@ -128,6 +204,9 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
             
             score += 100
             
+            
+            GameData.mainData().adjustValue(1, forKey: "bricksBusted")
+            
             var pointsLabel = UILabel(frame: brick.frame)
             pointsLabel.text = "+100"
             pointsLabel.textAlignment = .Center
@@ -146,6 +225,12 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
         }
         
     }
+        
+        if brickBehavior.items.count == 0 {
+            
+            endGame(false)
+            
+        }
     
 }
 
@@ -163,8 +248,17 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
         
         ball.removeFromSuperview()
             
-            if livesView.livesLeft == 0 {return}
+            if livesView.livesLeft == 0 {endGame (true); return}
         
+//        var ll = GameData.mainData().currentGame!["livesLost"]! + 1
+//            
+//        GameData.mainData().currentGame?["livesLost"] = ll
+            
+            
+           GameData.mainData().adjustValue(1, forKey: "livesLost")
+            
+            
+            
         livesView.livesLeft--
             
         createBall()
@@ -189,7 +283,6 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
         
         gameView.addSubview(ball)
         
-               //gravityBehavior.addItem(ball)
         
         collisionBehavior.addItem(ball)
         
@@ -209,7 +302,9 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
     
     func createBricks() {
         
-        var grid = (6,4)
+        var grid = GameData.mainData().allLevels[GameData.mainData().currentLevel]
+        
+        
         
         var gap: CGFloat = 10
         
@@ -262,8 +357,14 @@ class ViewController: UIViewController, UICollisionBehaviorDelegate {
         collisionBehavior.addItem(paddle)
         paddleBehavior.addItem(paddle)
         
-        attachmentBehavior = UIAttachmentBehavior(item: paddle, attachedToAnchor: paddle.center)
-        animator?.addBehavior(attachmentBehavior)
+        
+        if attachmentBehavior == nil {
+            
+            attachmentBehavior = UIAttachmentBehavior(item: paddle, attachedToAnchor: paddle.center)
+            animator?.addBehavior(attachmentBehavior)
+            
+        }
+       
         
         
     }
